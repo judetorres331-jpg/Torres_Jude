@@ -1,1 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tom and Jerry Game</title>
+  <style>
+    body { margin: 0; background: #000; font-family: sans-serif; color: white; }
+    canvas { display: block; margin: auto; background: #eee; }
+    #status { text-align: center; padding: 10px; font-size: 18px; background: #333; }
+  </style>
+</head>
+<body>
+<div id="status">⏱ Time Left: 60 | 🐱 Tom | 🐭 Jerry</div>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const statusBar = document.getElementById("status");
+
+const mapWidth = 2000;
+const mapHeight = 1500;
+let camera = { x: 0, y: 0, width: 800, height: 600 };
+
+let gameRunning = true;
+let timeLeft = 60;
+
+const tom = {
+  x: 300, y: 300, color: "blue", radius: 20, speed: 3,
+  keys: { up: "w", down: "s", left: "a", right: "d" }
+};
+
+const jerry = {
+  x: 1700, y: 1200, color: "brown", radius: 15, speed: 4,
+  keys: { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" }
+};
+
+const keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+function movePlayer(p) {
+  if (keys[p.keys.up]) p.y -= p.speed;
+  if (keys[p.keys.down]) p.y += p.speed;
+  if (keys[p.keys.left]) p.x -= p.speed;
+  if (keys[p.keys.right]) p.x += p.speed;
+
+  p.x = Math.max(0, Math.min(mapWidth, p.x));
+  p.y = Math.max(0, Math.min(mapHeight, p.y));
+}
+
+function updateCamera() {
+  camera.x = tom.x - camera.width / 2;
+  camera.y = tom.y - camera.height / 2;
+  camera.x = Math.max(0, Math.min(mapWidth - camera.width, camera.x));
+  camera.y = Math.max(0, Math.min(mapHeight - camera.height, camera.y));
+}
+
+function checkCollision() {
+  const dx = tom.x - jerry.x;
+  const dy = tom.y - jerry.y;
+  const distance = Math.hypot(dx, dy);
+
+  if (distance < tom.radius + jerry.radius) {
+    gameOver("Tom caught Jerry! 🐱 Wins!");
+  }
+}
+
+function gameOver(message) {
+  gameRunning = false;
+  statusBar.innerHTML = `💀 ${message} Refresh to play again.`;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(-camera.x, -camera.y);
+
+  // Draw map background
+  ctx.fillStyle = "#fffde7";
+  ctx.fillRect(0, 0, mapWidth, mapHeight);
+
+  // Draw room grids (optional)
+  ctx.strokeStyle = "#ccc";
+  for (let x = 0; x < mapWidth; x += 100) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, mapHeight); ctx.stroke();
+  }
+  for (let y = 0; y < mapHeight; y += 100) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(mapWidth, y); ctx.stroke();
+  }
+
+  // Draw players
+  [tom, jerry].forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+function updateStatus() {
+  statusBar.innerHTML = `⏱ Time Left: ${timeLeft} | 🐱 Tom | 🐭 Jerry`;
+}
+
+function gameLoop() {
+  if (!gameRunning) return;
+
+  movePlayer(tom);
+  movePlayer(jerry);
+  updateCamera();
+  checkCollision();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+setInterval(() => {
+  if (!gameRunning) return;
+  timeLeft--;
+  updateStatus();
+  if (timeLeft <= 0) gameOver("Jerry escaped! 🐭 Wins!");
+}, 1000);
+
+updateStatus();
+gameLoop();
+</script>
+</body>
+</html>
 
